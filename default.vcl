@@ -4,8 +4,8 @@ backend default {
 	# I have Virtual Hosts that only listen to the Public IP
 	# so no 127.0.0.1 for me
 	# Backend is running on port 81
-	.host = "193.239.210.183";
-   	.port = "81";
+	.host = "127.0.0.1";
+   	.port = "8080";
 	.first_byte_timeout = 300s;
 }
 
@@ -109,54 +109,10 @@ sub vcl_recv {
 	}
 
 	# Include the correct Virtual Host configuration file
-	if (req.http.Host == "mattiasgeniar.be" || req.http.Host == "geniar.be" || req.http.host == "minimatti.be") {
-		# Redirect the user if it's not on the "real" domain name (a 301 permanent redirect, SEO)
-		if (req.http.Host != "mattiasgeniar.be") {
-			error 701 "mattiasgeniar.be";
-		}
 
-		# A site-specific VCL for the vcl-receive
-		include "/usr/local/etc/varnish/conf.d/mattiasgeniar.be-receive.vcl";
-
-		# The Wordpress-specific VCL
-		include "/usr/local/etc/varnish/conf.d/_wordpress-receive.vcl";
-		
-	} elseif (req.http.Host ~ "(www\.)?buyzegemhof.be") {
-		# Redirect the user if it's not on the "real" domain
-		if (req.http.Host != "www.buyzegemhof.be") {
-			error 701 "www.buyzegemhof.be";
-		}
-
-		# A site-specific VCL for the vcl-receive
-		include "/usr/local/etc/varnish/conf.d/buyzegemhof.be-receive.vcl";
-
-		# The wordpress-specific VCL
-		include "/usr/local/etc/varnish/conf.d/_wordpress-receive.vcl";
-
-	} elseif (req.http.Host ~ "drupal.mojah.be") {
-		# A site-specific VCL for the vcl-receive
-		include "/usr/local/etc/varnish/conf.d/drupal.mojah.be-receive.vcl";
-
-		# The Drupal 7-specific VCL
-		include "/usr/local/etc/varnish/conf.d/_drupal_7-receive.vcl";
-
-	} elseif (req.http.Host ~ "forkcms.mojah.be") {
-		# A site-specific VCL for the vcl-receive
-		include "/usr/local/etc/varnish/conf.d/forkcms.mojah.be-receive.vcl";
-
-		# The Drupal 7-specific VCL
-		include "/usr/local/etc/varnish/conf.d/_forkcms-receive.vcl";
-
-	} elseif (req.http.Host == "pwgen.mattiasgeniar.be") {
-		return (pass);
-	} elseif (req.http.Host == "dev.mozbx.net") {
-		# Don't interfere with my devving
-		return (pass);
-	} else {
-		# Something not specified? Pass, I probably don't want it cached.
-		return (pass);
-	}
-
+	# The Wordpress-specific VCL
+	include "/usr/local/etc/varnish/conf.d/_wordpress-receive.vcl";
+			
 	if (req.http.Authorization || req.http.Cookie) {
 		# Not cacheable by default
 		return (pass);
@@ -222,35 +178,10 @@ sub vcl_miss {
 # Handle the HTTP request coming from our backend 
 sub vcl_fetch {
 	# I can use direct matching on the host, since I normalized the host header in the VCL Receive
-	if (req.http.Host == "mattiasgeniar.be") {
-		# A host specific VCL
-		include "/usr/local/etc/varnish/conf.d/mattiasgeniar.be-fetch.vcl";
 
-		# Since this is a Wordpress setup, the Wordpress-specific Fetch
-		include "/usr/local/etc/varnish/conf.d/_wordpress-fetch.vcl";
-
-	} elseif (req.http.Host == "www.buyzegemhof.be") {
-		# A host specific VCL
-		include "/usr/local/etc/varnish/conf.d/buyzegemhof.be-fetch.vcl";
-
-		# Since this is a Wordpress setup, the wordpress-specific Fetch
-		#include "/usr/local/etc/varnish/conf.d/_wordpress-fetch.vcl";
-
-	} elseif (req.http.Host == "drupal.mojah.be") {
-		# A host specific VCL
-		include "/usr/local/etc/varnish/conf.d/drupal.mojah.be-fetch.vcl";
-		
-		# Include the Drupal 7 specific VCL
-		include "/usr/local/etc/varnish/conf.d/_drupal_7-fetch.vcl";
-
-	} elseif (req.http.Host == "forkcms.mojah.be") {
-		# A host specific VCL
-		include "/usr/local/etc/varnish/conf.d/forkcms.mojah.be-fetch.vcl";
-
-		# Include the Fork CMS specific VCL
-		include "/usr/local/etc/varnish/conf.d/_forkcms-fetch.vcl";
-	}
-
+	# Since this is a Wordpress setup, the Wordpress-specific Fetch
+	include "/usr/local/etc/varnish/conf.d/_wordpress-fetch.vcl";
+	 
 	# Temporarily removed
 	#if (beresp.ttl <= 0s || beresp.http.Set-Cookie || beresp.http.Vary == "*") {
 	#	set beresp.ttl = 120s;
